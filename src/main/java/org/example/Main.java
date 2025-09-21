@@ -17,6 +17,8 @@ public class Main {
     private static final double A  = 0.07;
     private static final double B  = 0.37;
     private static final int    N  = 30;   // h = (B-A)/N = 0.01
+    private static final double h = (B - A) / N;
+    private static final double eps = 1e-4;
 
     public static void main(String[] args) throws Exception {
         Locale.setDefault(Locale.US);
@@ -39,11 +41,11 @@ public class Main {
         ErrorReporter.writeUniformErrors(A, B, N, "errors_uniform.txt");
 
 
-        double hBase = (B - A) / N;
-        MidpointFD.writeMidpointDfForH("midpoint_df_h.txt", A, B, hBase, true);
+
+        MidpointFD.writeMidpointDfForH("midpoint_h.txt", A, B, h, true, eps);
 
 
-        MidpointFD.writeMidpointDfForEps("midpoint_df_eps.txt", A, B, 1e-4, true);
+        MidpointFD.writeMidpointDfForEps("midpoint_eps.txt", A, B, eps, true);
 
 
 

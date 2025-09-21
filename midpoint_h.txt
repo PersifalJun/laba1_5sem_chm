@@ -1,0 +1,4 @@
+# center x = 0.220000, scheme = 5-point O(h^4)
+# target eps = 1.000000e-04, reached = YES
+           h             x                 df(x)                est|Δ|
+    0.010000      0.220000        0.819672128187    2.775694007973e-09

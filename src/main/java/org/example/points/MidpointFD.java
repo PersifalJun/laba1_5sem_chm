@@ -11,18 +11,27 @@ public final class MidpointFD {
 
 
     public static void writeMidpointDfForH(String fileName, double a, double b,
-                                           double hGuess, boolean use5pt) throws Exception {
+                                           double hGuess, boolean use5pt, double eps) throws Exception {
         final double xc = 0.5 * (a + b);
-        double h = clampH(a, b, xc, hGuess, use5pt);
+        double h  = clampH(a, b, xc, hGuess, use5pt);
         double df = use5pt ? df5pt(xc, h) : df3pt(xc, h);
 
+
+        double h2  = clampH(a, b, xc, h / 2.0, use5pt);
+        double df2 = use5pt ? df5pt(xc, h2) : df3pt(xc, h2);
+        double err = Math.abs(df2 - df);
+        boolean ok = err < eps;
+
         try (PrintWriter out = new PrintWriter(fileName)) {
-            out.println(String.format(Locale.US, "# center x = %.6f", xc));
-            out.println(String.format(Locale.US, "%12s  %12s  %20s", "h", "x", "df(x)"));
-            out.println(String.format(Locale.US, "%12.6f  %12.6f  %20.12f", h, xc, df));
+            out.printf(Locale.US, "# center x = %.6f, scheme = %s%n",
+                    xc, use5pt ? "5-point O(h^4)" : "3-point O(h^2)");
+            out.printf(Locale.US, "# target eps = %.6e, reached = %s%n", eps, ok ? "YES" : "NO");
+            out.printf(Locale.US, "%12s  %12s  %20s  %20s%n",
+                    "h", "x", "df(x)", "est|Δ|");
+            out.printf(Locale.US, "%12.6f  %12.6f  %20.12f  %20.12e%n",
+                    h, xc, df, err);
         }
     }
-
 
 
     public static void writeMidpointDfForEps(String fileName, double a, double b,
@@ -34,26 +43,32 @@ public final class MidpointFD {
         if (hMax <= 0) throw new IllegalArgumentException("Invalid interval (too small)");
         double h = Math.min(hMax, (b - a) / 10.0);
 
-        double prev = Double.NaN, cur;
+        double prev = Double.NaN, cur = Double.NaN, err = Double.POSITIVE_INFINITY;
         int it = 0, itMax = 25;
-        do {
+
+        while (it < itMax) {
             h = clampH(a, b, xc, h, use5pt);
             cur = use5pt ? df5pt(xc, h) : df3pt(xc, h);
 
-            if (!Double.isNaN(prev) && Math.abs(cur - prev) < eps) break;
-
+            if (!Double.isNaN(prev)) {
+                err = Math.abs(cur - prev);
+                if (err < eps) break;
+            }
             prev = cur;
             h *= 0.5;
             it++;
-        } while (it < itMax);
+        }
+        boolean ok = err < eps;
 
         try (PrintWriter out = new PrintWriter(fileName)) {
-            out.println(String.format(Locale.US, "# center x = %.6f, eps = %.4e",
-                    xc, eps, use5pt ? "5-point" : "3-point"));
-            out.println(String.format(Locale.US, "%12s  %12s  %20s  %10s",
-                    "h", "x", "df(x)", "iters"));
-            out.println(String.format(Locale.US, "%12.6f  %12.6f  %20.12f  %10d",
-                    h, xc, cur, it));
+            out.printf(Locale.US, "# center x = %.6f, scheme = %s%n",
+                    xc, use5pt ? "5-point O(h^4)" : "3-point O(h^2)");
+            out.printf(Locale.US, "# target eps = %.6e, reached = %s%n", eps, ok ? "YES" : "NO");
+            out.printf(Locale.US, "%12s  %12s  %20s  %20s  %10s%n",
+                    "h", "x", "df(x)", "est|Δ|", "iters");
+            out.printf(Locale.US, "%12.6f  %12.6f  %20.12f  %20.12e  %10d%n",
+                    h, xc, cur, err, it);
+            if (!ok) out.println("Max iterations reached, eps not achieved.");
         }
     }
 
